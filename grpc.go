@@ -26,7 +26,6 @@ import (
 	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"
 	gmetadata "google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -140,10 +139,6 @@ func (g *Server) configure(opts ...server.Option) error {
 		grpc.UnknownServiceHandler(g.handler),
 	}
 
-	if creds := g.getCredentials(); creds != nil {
-		gopts = append(gopts, grpc.Creds(creds))
-	}
-
 	if opts := g.getGrpcOptions(); opts != nil {
 		gopts = append(opts, gopts...)
 	}
@@ -178,13 +173,6 @@ func (g *Server) getMaxMsgSize() int {
 		return codec.DefaultMaxMsgSize
 	}
 	return s
-}
-
-func (g *Server) getCredentials() credentials.TransportCredentials {
-	if g.opts.TLSConfig != nil {
-		return credentials.NewTLS(g.opts.TLSConfig)
-	}
-	return nil
 }
 
 func (g *Server) getGrpcOptions() []grpc.ServerOption {
