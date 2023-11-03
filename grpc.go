@@ -234,6 +234,7 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) (err error) 
 	for k, v := range gmd {
 		md.Set(k, strings.Join(v, ", "))
 	}
+	md.Set("Path", fullMethod)
 
 	var td string
 	// timeout for server deadline
