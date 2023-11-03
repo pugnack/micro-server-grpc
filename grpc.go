@@ -235,6 +235,9 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) (err error) 
 		md.Set(k, strings.Join(v, ", "))
 	}
 	md.Set("Path", fullMethod)
+	md.Set("Micro-Server", "grpc")
+	md.Set(metadata.HeaderEndpoint, methodName)
+	md.Set(metadata.HeaderService, serviceName)
 
 	var td string
 	// timeout for server deadline
