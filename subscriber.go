@@ -132,9 +132,6 @@ func (g *Server) createSubHandler(sb *subscriber, opts server.Options) broker.Ha
 
 		hdr := make(map[string]string, len(msg.Header))
 		for k, v := range msg.Header {
-			if k == "Content-Type" {
-				continue
-			}
 			hdr[k] = v
 		}
 
