@@ -214,13 +214,6 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) (err error) 
 				config.Logger.Error(config.Context, string(debug.Stack()))
 			}
 			err = errors.InternalServerError(g.opts.Name, "panic in %s.%s recovered: %v", serviceName, methodName, r)
-		} else if err != nil {
-			g.RLock()
-			config := g.opts
-			g.RUnlock()
-			if config.Logger.V(logger.ErrorLevel) {
-				config.Logger.Errorf(config.Context, "grpc handler %s.%s got error: %s", serviceName, methodName, err)
-			}
 		}
 	}()
 
