@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"reflect"
-	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,7 +19,7 @@ import (
 	"go.unistack.org/micro/v3/codec"
 	"go.unistack.org/micro/v3/errors"
 	"go.unistack.org/micro/v3/logger"
-	metadata "go.unistack.org/micro/v3/metadata"
+	"go.unistack.org/micro/v3/metadata"
 	"go.unistack.org/micro/v3/register"
 	"go.unistack.org/micro/v3/server"
 	"golang.org/x/net/netutil"
@@ -203,19 +202,6 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) (err error) 
 	if err != nil {
 		return status.New(codes.InvalidArgument, err.Error()).Err()
 	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			g.RLock()
-			config := g.opts
-			g.RUnlock()
-			if config.Logger.V(logger.ErrorLevel) {
-				config.Logger.Errorf(config.Context, "panic in %s.%s recovered: %v", serviceName, methodName, r)
-				config.Logger.Error(config.Context, string(debug.Stack()))
-			}
-			err = errors.InternalServerError(g.opts.Name, "panic in %s.%s recovered: %v", serviceName, methodName, r)
-		}
-	}()
 
 	if g.wg != nil {
 		g.wg.Add(1)
