@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"runtime/debug"
 	"strings"
 
 	"go.unistack.org/micro/v3/broker"
-	"go.unistack.org/micro/v3/errors"
-	"go.unistack.org/micro/v3/logger"
 	"go.unistack.org/micro/v3/metadata"
 	"go.unistack.org/micro/v3/register"
 	"go.unistack.org/micro/v3/server"
@@ -104,15 +101,6 @@ func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOptio
 
 func (g *Server) createSubHandler(sb *subscriber, opts server.Options) broker.Handler {
 	return func(p broker.Event) (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				if g.opts.Logger.V(logger.ErrorLevel) {
-					g.opts.Logger.Error(g.opts.Context, "panic recovered: ", r)
-					g.opts.Logger.Error(g.opts.Context, string(debug.Stack()))
-				}
-				err = errors.InternalServerError(g.opts.Name+".subscriber", "panic recovered: %v", r)
-			}
-		}()
 
 		msg := p.Message()
 		// if we don't have headers, create empty map
