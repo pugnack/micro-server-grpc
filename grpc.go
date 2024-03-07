@@ -867,7 +867,7 @@ func (g *Server) Start() error {
 
 		select {
 		case <-exit:
-		case <-time.After(time.Second):
+		case <-time.After(g.opts.GracefulTimeout):
 			g.srv.Stop()
 		}
 
