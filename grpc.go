@@ -1,5 +1,5 @@
 // Package grpc provides a grpc server
-package grpc // import "go.unistack.org/micro-server-grpc/v3"
+package grpc
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"go.unistack.org/micro/v3/metadata"
 	"go.unistack.org/micro/v3/register"
 	"go.unistack.org/micro/v3/server"
+	msync "go.unistack.org/micro/v3/sync"
 	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -47,7 +48,7 @@ type Server struct {
 	handlers       map[string]server.Handler
 	srv            *grpc.Server
 	exit           chan chan error
-	wg             *sync.WaitGroup
+	wg             *msync.WaitGroup
 	rsvc           *register.Service
 	subscribers    map[*subscriber][]broker.Subscriber
 	rpc            *rServer
@@ -116,8 +117,6 @@ func (g *Server) configure(opts ...server.Option) error {
 	if err := g.opts.Transport.Init(); err != nil {
 		return err
 	}
-
-	g.wg = g.opts.Wait
 
 	if g.opts.Context != nil {
 		if codecs, ok := g.opts.Context.Value(codecsKey{}).(map[string]encoding.Codec); ok && codecs != nil {
@@ -203,9 +202,9 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) (err error) 
 		return status.New(codes.InvalidArgument, err.Error()).Err()
 	}
 
-	if g.wg != nil {
-		g.wg.Add(1)
-		defer g.wg.Done()
+	if g.opts.Wait != nil {
+		g.opts.Wait.Add(1)
+		defer g.opts.Wait.Done()
 	}
 
 	// get grpc metadata
@@ -853,8 +852,8 @@ func (g *Server) Start() error {
 		}
 
 		// wait for waitgroup
-		if g.wg != nil {
-			g.wg.Wait()
+		if g.opts.Wait != nil {
+			g.opts.Wait.Wait()
 		}
 
 		// stop the grpc server
