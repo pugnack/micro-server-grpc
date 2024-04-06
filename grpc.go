@@ -206,6 +206,7 @@ func (g *Server) getGrpcOptions() []grpc.ServerOption {
 }
 
 func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
+	var err error
 	fullMethod, ok := grpc.MethodFromServerStream(stream)
 	if !ok {
 		return status.Errorf(codes.Internal, "method does not exist in context")
@@ -218,12 +219,20 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 		g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", fullMethod).Update(te.Seconds())
 		g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", fullMethod).Update(te.Seconds())
 		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Dec()
+
+		st := status.Convert(err)
+		if st == nil || st.Code() == codes.OK {
+			g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
+		} else {
+			g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
+		}
 	}()
 
-	serviceName, methodName, err := serviceMethod(fullMethod)
+	var serviceName, methodName string
+	serviceName, methodName, err = serviceMethod(fullMethod)
 	if err != nil {
-		g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(codes.InvalidArgument))).Inc()
-		return status.New(codes.InvalidArgument, err.Error()).Err()
+		err = status.New(codes.InvalidArgument, err.Error()).Err()
+		return err
 	}
 
 	if g.opts.Wait != nil {
@@ -306,19 +315,21 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	if svc == nil {
 		if g.unknownHandler != nil {
-			return g.unknownHandler(srv, stream)
+			err = g.unknownHandler(srv, stream)
+			return err
 		}
-		g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(codes.Unimplemented))).Inc()
-		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service %s", serviceName)).Err()
+		err = status.New(codes.Unimplemented, fmt.Sprintf("unknown service %s", serviceName)).Err()
+		return err
 	}
 
 	mtype := svc.method[methodName]
 	if mtype == nil {
 		if g.unknownHandler != nil {
-			return g.unknownHandler(srv, stream)
+			err = g.unknownHandler(srv, stream)
+			return err
 		}
-		g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(codes.Unimplemented))).Inc()
-		return status.New(codes.Unimplemented, fmt.Sprintf("unknown service method %s.%s", serviceName, methodName)).Err()
+		err = status.New(codes.Unimplemented, fmt.Sprintf("unknown service method %s.%s", serviceName, methodName)).Err()
+		return err
 	}
 
 	// process unary
@@ -327,14 +338,6 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 	} else {
 		// process stream
 		err = g.processStream(ctx, stream, svc, mtype, ct)
-	}
-
-	st := status.Convert(err)
-
-	if st == nil || st.Code() == codes.OK {
-		g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
-	} else {
-		g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
 	}
 
 	return err
