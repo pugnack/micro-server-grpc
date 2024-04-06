@@ -14,10 +14,8 @@ type Reflector interface {
 const (
 	// ReflectV1ServiceName is the fully-qualified name of the v1 version of the reflection service.
 	ReflectV1ServiceName = "grpc.reflection.v1.ServerReflection"
-	// ReflectV1AlphaServiceName is the fully-qualified name of the v1alpha version of the reflection service.
-	ReflectV1AlphaServiceName = "grpc.reflection.v1alpha.ServerReflection"
-
-	ReflectServiceURLPathV1      = "/" + ReflectV1ServiceName + "/"
-	ReflectServiceURLPathV1Alpha = "/" + ReflectV1AlphaServiceName + "/"
-	ReflectMethodName            = "ServerReflectionInfo"
+	// ReflectServiceURLPathV1 is the full path for reflection service endpoint
+	ReflectServiceURLPathV1 = "/" + ReflectV1ServiceName + "/"
+	// ReflectMethodName is the reflection service name
+	ReflectMethodName = "ServerReflectionInfo"
 )

@@ -7,10 +7,44 @@ import (
 	"strings"
 
 	"go.unistack.org/micro/v3/broker"
+	"go.unistack.org/micro/v3/codec"
+
+	// "go.unistack.org/micro/v3/errors"
+	// "go.unistack.org/micro/v3/logger"
 	"go.unistack.org/micro/v3/metadata"
 	"go.unistack.org/micro/v3/register"
 	"go.unistack.org/micro/v3/server"
 )
+
+var _ server.Message = &rpcMessage{}
+
+type rpcMessage struct {
+	payload     interface{}
+	codec       codec.Codec
+	header      metadata.Metadata
+	topic       string
+	contentType string
+}
+
+func (r *rpcMessage) ContentType() string {
+	return r.contentType
+}
+
+func (r *rpcMessage) Topic() string {
+	return r.topic
+}
+
+func (r *rpcMessage) Body() interface{} {
+	return r.payload
+}
+
+func (r *rpcMessage) Header() metadata.Metadata {
+	return r.header
+}
+
+func (r *rpcMessage) Codec() codec.Codec {
+	return r.codec
+}
 
 type handler struct {
 	reqType reflect.Type
@@ -101,7 +135,6 @@ func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOptio
 
 func (g *Server) createSubHandler(sb *subscriber, opts server.Options) broker.Handler {
 	return func(p broker.Event) (err error) {
-
 		msg := p.Message()
 		// if we don't have headers, create empty map
 		if msg.Header == nil {
