@@ -8,10 +8,9 @@ import (
 
 	"go.unistack.org/micro/v3/broker"
 	"go.unistack.org/micro/v3/codec"
-
-	// "go.unistack.org/micro/v3/errors"
-	// "go.unistack.org/micro/v3/logger"
+	"go.unistack.org/micro/v3/logger"
 	"go.unistack.org/micro/v3/metadata"
+	"go.unistack.org/micro/v3/options"
 	"go.unistack.org/micro/v3/register"
 	"go.unistack.org/micro/v3/server"
 )
@@ -198,9 +197,11 @@ func (g *Server) createSubHandler(sb *subscriber, opts server.Options) broker.Ha
 				return nil
 			}
 
-			for i := len(opts.SubWrappers); i > 0; i-- {
-				fn = opts.SubWrappers[i-1](fn)
-			}
+			opts.Hooks.EachNext(func(hook options.Hook) {
+				if h, ok := hook.(server.HookSubHandler); ok {
+					fn = h(fn)
+				}
+			})
 
 			if g.wg != nil {
 				g.wg.Add(1)
@@ -246,4 +247,39 @@ func (s *subscriber) Endpoints() []*register.Endpoint {
 
 func (s *subscriber) Options() server.SubscriberOptions {
 	return s.opts
+}
+
+func (g *Server) subscribe() error {
+	config := g.opts
+	subCtx := config.Context
+
+	for sb := range g.subscribers {
+
+		if cx := sb.Options().Context; cx != nil {
+			subCtx = cx
+		}
+
+		opts := []broker.SubscribeOption{
+			broker.SubscribeContext(subCtx),
+			broker.SubscribeAutoAck(sb.Options().AutoAck),
+			broker.SubscribeBodyOnly(sb.Options().BodyOnly),
+		}
+
+		if queue := sb.Options().Queue; len(queue) > 0 {
+			opts = append(opts, broker.SubscribeGroup(queue))
+		}
+
+		if config.Logger.V(logger.InfoLevel) {
+			config.Logger.Info(config.Context, "subscribing to topic: "+sb.Topic())
+		}
+
+		sub, err := config.Broker.Subscribe(subCtx, sb.Topic(), g.createSubHandler(sb, config), opts...)
+		if err != nil {
+			return err
+		}
+
+		g.subscribers[sb] = []broker.Subscriber{sub}
+	}
+
+	return nil
 }
