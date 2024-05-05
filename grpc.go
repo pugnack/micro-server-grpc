@@ -51,6 +51,18 @@ type ServerReflection struct {
 }
 */
 
+type streamWrapper struct {
+	ctx context.Context
+	grpc.ServerStream
+}
+
+func (w *streamWrapper) Context() context.Context {
+	if w.ctx != nil {
+		return w.ctx
+	}
+	return w.ServerStream.Context()
+}
+
 type Server struct {
 	handlers       map[string]server.Handler
 	srv            *grpc.Server
@@ -205,6 +217,8 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 			"endpoint", fullMethod,
 		),
 	)
+
+	stream = &streamWrapper{ctx, stream}
 
 	ts := time.Now()
 	g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Inc()
