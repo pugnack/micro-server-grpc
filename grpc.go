@@ -210,51 +210,17 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 		return status.Errorf(codes.Internal, "method does not exist in context")
 	}
 
-	var sp tracer.Span
-	ctx, sp = g.opts.Tracer.Start(ctx, fullMethod+" rpc-server",
-		tracer.WithSpanKind(tracer.SpanKindServer),
-		tracer.WithSpanLabels(
-			"endpoint", fullMethod,
-		),
-	)
-
-	stream = &streamWrapper{ctx, stream}
-
-	ts := time.Now()
-	g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Inc()
-
-	defer func() {
-		te := time.Since(ts)
-		g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", fullMethod).Update(te.Seconds())
-		g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", fullMethod).Update(te.Seconds())
-		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Dec()
-
-		st := status.Convert(err)
-		if st == nil || st.Code() == codes.OK {
-			g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
-		} else {
-			sp.SetStatus(tracer.SpanStatusError, err.Error())
-			g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
-		}
-		sp.Finish()
-	}()
+	// get grpc metadata
+	gmd, ok := gmetadata.FromIncomingContext(ctx)
+	if !ok {
+		gmd = gmetadata.MD{}
+	}
 
 	var serviceName, methodName string
 	serviceName, methodName, err = serviceMethod(fullMethod)
 	if err != nil {
 		err = status.New(codes.InvalidArgument, err.Error()).Err()
 		return err
-	}
-
-	if g.opts.Wait != nil {
-		g.opts.Wait.Add(1)
-		defer g.opts.Wait.Done()
-	}
-
-	// get grpc metadata
-	gmd, ok := gmetadata.FromIncomingContext(ctx)
-	if !ok {
-		gmd = gmetadata.MD{}
 	}
 
 	md := metadata.New(len(gmd))
@@ -303,6 +269,40 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	// create new context
 	ctx = metadata.NewIncomingContext(ctx, md)
+
+	var sp tracer.Span
+	ctx, sp = g.opts.Tracer.Start(ctx, fullMethod+" rpc-server",
+		tracer.WithSpanKind(tracer.SpanKindServer),
+		tracer.WithSpanLabels(
+			"endpoint", fullMethod,
+		),
+	)
+
+	stream = &streamWrapper{ctx, stream}
+
+	ts := time.Now()
+	g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Inc()
+
+	defer func() {
+		te := time.Since(ts)
+		g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", fullMethod).Update(te.Seconds())
+		g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", fullMethod).Update(te.Seconds())
+		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Dec()
+
+		st := status.Convert(err)
+		if st == nil || st.Code() == codes.OK {
+			g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
+		} else {
+			sp.SetStatus(tracer.SpanStatusError, err.Error())
+			g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
+		}
+		sp.Finish()
+	}()
+
+	if g.opts.Wait != nil {
+		g.opts.Wait.Add(1)
+		defer g.opts.Wait.Done()
+	}
 
 	// get peer from context
 	if p, ok := peer.FromContext(ctx); ok {
