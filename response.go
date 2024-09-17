@@ -27,8 +27,5 @@ func (r *rpcResponse) WriteHeader(hdr metadata.Metadata) {
 }
 
 func (r *rpcResponse) Write(b []byte) error {
-	return r.codec.Write(r.rw, &codec.Message{
-		Header: r.header,
-		Body:   b,
-	}, nil)
+	return nil
 }

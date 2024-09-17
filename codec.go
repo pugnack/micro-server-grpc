@@ -1,8 +1,6 @@
 package grpc
 
 import (
-	"io"
-
 	"go.unistack.org/micro/v3/codec"
 	"google.golang.org/grpc/encoding"
 )
@@ -48,30 +46,4 @@ func (w *wrapGrpcCodec) Unmarshal(d []byte, v interface{}, opts ...codec.Option)
 		return nil
 	}
 	return w.Codec.Unmarshal(d, v)
-}
-
-func (w *wrapGrpcCodec) ReadHeader(conn io.Reader, m *codec.Message, mt codec.MessageType) error {
-	return nil
-}
-
-func (w *wrapGrpcCodec) ReadBody(conn io.Reader, v interface{}) error {
-	if m, ok := v.(*codec.Frame); ok {
-		_, err := conn.Read(m.Data)
-		return err
-	}
-	return codec.ErrInvalidMessage
-}
-
-func (w *wrapGrpcCodec) Write(conn io.Writer, m *codec.Message, v interface{}) error {
-	// if we don't have a body
-	if v != nil {
-		b, err := w.Marshal(v)
-		if err != nil {
-			return err
-		}
-		m.Body = b
-	}
-	// write the body using the framing codec
-	_, err := conn.Write(m.Body)
-	return err
 }

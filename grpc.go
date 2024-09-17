@@ -177,12 +177,9 @@ func (g *Server) configure(opts ...server.Option) error {
 }
 
 func (g *Server) getMaxMsgSize() int {
-	if g.opts.Context == nil {
-		return codec.DefaultMaxMsgSize
-	}
 	s, ok := g.opts.Context.Value(maxMsgSizeKey{}).(int)
 	if !ok {
-		return codec.DefaultMaxMsgSize
+		return 4 * 1024 * 1024
 	}
 	return s
 }
