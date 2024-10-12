@@ -885,7 +885,7 @@ func (g *Server) Start() error {
 		// deregister self
 		if err = g.Deregister(); err != nil {
 			if config.Logger.V(logger.ErrorLevel) {
-				config.Logger.Errorf(config.Context, "Server deregister error: %v", err)
+				config.Logger.Error(config.Context, "Server deregister error", err)
 			}
 		}
 
