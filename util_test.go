@@ -26,6 +26,7 @@ func TestServiceMethod(t *testing.T) {
 		if err != nil && test.err == true {
 			continue
 		}
+		t.Logf("input %s service %s method %s", test.input, service, method)
 		// unexpected error
 		if err != nil && test.err == false {
 			t.Fatalf("unexpected err %v for %+v", err, test)

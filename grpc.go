@@ -208,24 +208,6 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 		return status.Errorf(codes.Internal, "method does not exist in context")
 	}
 
-	ts := time.Now()
-	var sp tracer.Span
-	if !slices.Contains(tracer.DefaultSkipEndpoints, fullMethod) {
-		ctx, sp = g.opts.Tracer.Start(ctx, fullMethod+" rpc-server",
-			tracer.WithSpanKind(tracer.SpanKindServer),
-			tracer.WithSpanLabels(
-				"endpoint", fullMethod,
-			),
-		)
-		defer func() {
-			st := status.Convert(err)
-			if st != nil || st.Code() != codes.OK {
-				sp.SetStatus(tracer.SpanStatusError, err.Error())
-			}
-			sp.Finish()
-		}()
-	}
-
 	// get grpc metadata
 	gmd, ok := gmetadata.FromIncomingContext(ctx)
 	if !ok {
@@ -239,9 +221,29 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 		return err
 	}
 
+	endpointName := serviceName + "/" + methodName
+
+	ts := time.Now()
+	var sp tracer.Span
+	if !slices.Contains(tracer.DefaultSkipEndpoints, endpointName) {
+		ctx, sp = g.opts.Tracer.Start(ctx, "rpc-server",
+			tracer.WithSpanKind(tracer.SpanKindServer),
+			tracer.WithSpanLabels(
+				"endpoint", endpointName,
+			),
+		)
+		defer func() {
+			st := status.Convert(err)
+			if st != nil || st.Code() != codes.OK {
+				sp.SetStatus(tracer.SpanStatusError, err.Error())
+			}
+			sp.Finish()
+		}()
+	}
+
 	md := metadata.New(len(gmd))
 	for k, v := range gmd {
-		md.Set(k, strings.Join(v, ", "))
+		md[k] = strings.Join(v, ", ")
 	}
 	md.Set("Path", fullMethod)
 	md.Set("Micro-Server", "grpc")
@@ -288,19 +290,19 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	stream = &streamWrapper{ctx, stream}
 
-	if !slices.Contains(meter.DefaultSkipEndpoints, fullMethod) {
-		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Inc()
+	if !slices.Contains(meter.DefaultSkipEndpoints, endpointName) {
+		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", endpointName).Inc()
 		defer func() {
 			te := time.Since(ts)
-			g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", fullMethod).Update(te.Seconds())
-			g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", fullMethod).Update(te.Seconds())
-			g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", fullMethod).Dec()
+			g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", endpointName).Update(te.Seconds())
+			g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", endpointName).Update(te.Seconds())
+			g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", endpointName).Dec()
 
 			st := status.Convert(err)
 			if st == nil || st.Code() == codes.OK {
-				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
+				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", endpointName, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
 			} else {
-				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", fullMethod, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
+				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", endpointName, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
 			}
 		}()
 	}
