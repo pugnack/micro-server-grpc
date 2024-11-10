@@ -230,6 +230,7 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 			tracer.WithSpanKind(tracer.SpanKindServer),
 			tracer.WithSpanLabels(
 				"endpoint", endpointName,
+				"server", "grpc",
 			),
 		)
 		defer func() {
@@ -291,18 +292,18 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 	stream = &streamWrapper{ctx, stream}
 
 	if !slices.Contains(meter.DefaultSkipEndpoints, endpointName) {
-		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", endpointName).Inc()
+		g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", endpointName, "server", "grpc").Inc()
 		defer func() {
 			te := time.Since(ts)
-			g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", endpointName).Update(te.Seconds())
-			g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", endpointName).Update(te.Seconds())
-			g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", endpointName).Dec()
+			g.opts.Meter.Summary(semconv.ServerRequestLatencyMicroseconds, "endpoint", endpointName, "server", "grpc").Update(te.Seconds())
+			g.opts.Meter.Histogram(semconv.ServerRequestDurationSeconds, "endpoint", endpointName, "server", "grpc").Update(te.Seconds())
+			g.opts.Meter.Counter(semconv.ServerRequestInflight, "endpoint", endpointName, "server", "grpc").Dec()
 
 			st := status.Convert(err)
 			if st == nil || st.Code() == codes.OK {
-				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", endpointName, "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
+				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", endpointName, "server", "grpc", "status", "success", "code", strconv.Itoa(int(codes.OK))).Inc()
 			} else {
-				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", endpointName, "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
+				g.opts.Meter.Counter(semconv.ServerRequestTotal, "endpoint", endpointName, "server", "grpc", "status", "failure", "code", strconv.Itoa(int(st.Code()))).Inc()
 			}
 		}()
 	}
