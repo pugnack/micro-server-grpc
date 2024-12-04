@@ -295,6 +295,7 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 
 	// create new context
 	ctx = metadata.NewIncomingContext(ctx, md)
+	ctx = metadata.NewOutgoingContext(ctx, metadata.New(0))
 
 	stream = &streamWrapper{ctx, stream}
 
