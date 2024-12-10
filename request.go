@@ -1,8 +1,6 @@
 package grpc
 
 import (
-	"io"
-
 	"go.unistack.org/micro/v3/codec"
 	"go.unistack.org/micro/v3/metadata"
 	"go.unistack.org/micro/v3/server"
@@ -11,7 +9,6 @@ import (
 var _ server.Request = &rpcRequest{}
 
 type rpcRequest struct {
-	rw          io.ReadWriter
 	payload     interface{}
 	codec       codec.Codec
 	header      metadata.Metadata

@@ -81,7 +81,7 @@ type Server struct {
 	stateHealth *atomic.Uint32
 	started     bool
 	registered  bool
-	reflection  bool
+	// reflection  bool
 }
 
 func newServer(opts ...server.Option) *Server {
