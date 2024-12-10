@@ -140,7 +140,7 @@ func (server *rServer) register(rcvr interface{}) error {
 		return fmt.Errorf("rpc Register: type %s is not exported", sname)
 	}
 	if _, present := server.serviceMap[sname]; present {
-		return fmt.Errorf("rpc: service already defined: " + sname)
+		return fmt.Errorf("rpc: service already defined: %s", sname)
 	}
 	s.name = sname
 	s.method = make(map[string]*methodType)
