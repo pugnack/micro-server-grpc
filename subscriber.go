@@ -11,7 +11,6 @@ import (
 	"go.unistack.org/micro/v3/logger"
 	"go.unistack.org/micro/v3/metadata"
 	"go.unistack.org/micro/v3/options"
-	"go.unistack.org/micro/v3/register"
 	"go.unistack.org/micro/v3/server"
 )
 
@@ -57,14 +56,12 @@ type subscriber struct {
 	typ        reflect.Type
 	subscriber interface{}
 	handlers   []*handler
-	endpoints  []*register.Endpoint
 	opts       server.SubscriberOptions
 }
 
 func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOption) server.Subscriber {
 	options := server.NewSubscriberOptions(opts...)
 
-	var endpoints []*register.Endpoint
 	var handlers []*handler
 
 	if typ := reflect.TypeOf(sub); typ.Kind() == reflect.Func {
@@ -82,18 +79,7 @@ func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOptio
 
 		handlers = append(handlers, h)
 
-		endpoints = append(endpoints, &register.Endpoint{
-			Name:    "Func",
-			Request: register.ExtractSubValue(typ),
-			Metadata: map[string]string{
-				"topic":      topic,
-				"subscriber": "true",
-			},
-		})
 	} else {
-		hdlr := reflect.ValueOf(sub)
-		name := reflect.Indirect(hdlr).Type().Name()
-
 		for m := 0; m < typ.NumMethod(); m++ {
 			method := typ.Method(m)
 			h := &handler{
@@ -110,14 +96,6 @@ func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOptio
 
 			handlers = append(handlers, h)
 
-			endpoints = append(endpoints, &register.Endpoint{
-				Name:    name + "." + method.Name,
-				Request: register.ExtractSubValue(method.Type),
-				Metadata: map[string]string{
-					"topic":      topic,
-					"subscriber": "true",
-				},
-			})
 		}
 	}
 
@@ -127,7 +105,6 @@ func newSubscriber(topic string, sub interface{}, opts ...server.SubscriberOptio
 		topic:      topic,
 		subscriber: sub,
 		handlers:   handlers,
-		endpoints:  endpoints,
 		opts:       options,
 	}
 }
@@ -239,10 +216,6 @@ func (s *subscriber) Topic() string {
 
 func (s *subscriber) Subscriber() interface{} {
 	return s.subscriber
-}
-
-func (s *subscriber) Endpoints() []*register.Endpoint {
-	return s.endpoints
 }
 
 func (s *subscriber) Options() server.SubscriberOptions {
