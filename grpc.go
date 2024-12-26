@@ -420,7 +420,7 @@ func (g *Server) processRequest(ctx context.Context, stream grpc.ServerStream, s
 		return err
 	}
 
-	g.opts.Hooks.EachNext(func(hook options.Hook) {
+	g.opts.Hooks.EachPrev(func(hook options.Hook) {
 		if h, ok := hook.(server.HookHandler); ok {
 			fn = h(fn)
 		}
@@ -504,7 +504,7 @@ func (g *Server) processStream(ctx context.Context, stream grpc.ServerStream, se
 		return nil
 	}
 
-	opts.Hooks.EachNext(func(hook options.Hook) {
+	opts.Hooks.EachPrev(func(hook options.Hook) {
 		if h, ok := hook.(server.HookHandler); ok {
 			fn = h(fn)
 		}
