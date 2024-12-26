@@ -657,18 +657,7 @@ func (g *Server) Register() error {
 		return subscriberList[i].topic > subscriberList[j].topic
 	})
 
-	endpoints := make([]*register.Endpoint, 0, len(handlerList)+len(subscriberList))
-	for _, n := range handlerList {
-		endpoints = append(endpoints, g.handlers[n].Endpoints()...)
-	}
-	for _, e := range subscriberList {
-		endpoints = append(endpoints, e.Endpoints()...)
-	}
 	g.RUnlock()
-
-	service.Nodes[0].Metadata["protocol"] = "grpc"
-	service.Nodes[0].Metadata["transport"] = service.Nodes[0].Metadata["protocol"]
-	service.Endpoints = endpoints
 
 	g.RLock()
 	registered := g.registered
