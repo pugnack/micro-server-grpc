@@ -14,7 +14,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"go.unistack.org/micro/v3/server"
+	"go.unistack.org/micro/v4/server"
 )
 
 // Precompute the reflect type for error. Can't use error directly
@@ -47,8 +47,8 @@ type rServer struct {
 
 // Is this an exported - upper case - name?
 func isExported(name string) bool {
-	rune, _ := utf8.DecodeRuneInString(name)
-	return unicode.IsUpper(rune)
+	r, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(r)
 }
 
 // Is this type exported or a builtin?
@@ -123,43 +123,43 @@ func prepareEndpoint(method reflect.Method) (*methodType, error) {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}, nil
 }
 
-func (server *rServer) register(rcvr interface{}) error {
-	server.mu.Lock()
-	defer server.mu.Unlock()
-	if server.serviceMap == nil {
-		server.serviceMap = make(map[string]*service)
+func (s *rServer) register(rcvr interface{}) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.serviceMap == nil {
+		s.serviceMap = make(map[string]*service)
 	}
-	s := &service{}
-	s.typ = reflect.TypeOf(rcvr)
-	s.rcvr = reflect.ValueOf(rcvr)
-	sname := reflect.Indirect(s.rcvr).Type().Name()
+	srv := &service{}
+	srv.typ = reflect.TypeOf(rcvr)
+	srv.rcvr = reflect.ValueOf(rcvr)
+	sname := reflect.Indirect(srv.rcvr).Type().Name()
 	if sname == "" {
-		return fmt.Errorf("rpc: no service name for type %v", s.typ.String())
+		return fmt.Errorf("rpc: no service name for type %v", srv.typ.String())
 	}
 	if !isExported(sname) {
 		return fmt.Errorf("rpc Register: type %s is not exported", sname)
 	}
-	if _, present := server.serviceMap[sname]; present {
+	if _, present := s.serviceMap[sname]; present {
 		return fmt.Errorf("rpc: service already defined: %s", sname)
 	}
-	s.name = sname
-	s.method = make(map[string]*methodType)
+	srv.name = sname
+	srv.method = make(map[string]*methodType)
 
 	// Install the methods
-	for m := 0; m < s.typ.NumMethod(); m++ {
-		method := s.typ.Method(m)
+	for m := 0; m < srv.typ.NumMethod(); m++ {
+		method := srv.typ.Method(m)
 		mt, err := prepareEndpoint(method)
 		if mt != nil && err == nil {
-			s.method[method.Name] = mt
+			srv.method[method.Name] = mt
 		} else if err != nil {
 			return err
 		}
 	}
 
-	if len(s.method) == 0 {
+	if len(srv.method) == 0 {
 		return fmt.Errorf("rpc Register: type %s has no exported methods of suitable type", sname)
 	}
-	server.serviceMap[s.name] = s
+	s.serviceMap[srv.name] = srv
 	return nil
 }
 

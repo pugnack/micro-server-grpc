@@ -3,9 +3,8 @@ package grpc
 import (
 	"fmt"
 	"testing"
-
-	_ "go.unistack.org/micro-server-grpc/v3/proto"
-	"go.unistack.org/micro/v3/server"
+	
+	"go.unistack.org/micro/v4/server"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"

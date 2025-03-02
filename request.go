@@ -1,9 +1,9 @@
 package grpc
 
 import (
-	"go.unistack.org/micro/v3/codec"
-	"go.unistack.org/micro/v3/metadata"
-	"go.unistack.org/micro/v3/server"
+	"go.unistack.org/micro/v4/codec"
+	"go.unistack.org/micro/v4/metadata"
+	"go.unistack.org/micro/v4/server"
 )
 
 var _ server.Request = &rpcRequest{}
