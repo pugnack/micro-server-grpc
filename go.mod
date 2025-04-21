@@ -1,7 +1,8 @@
 module go.unistack.org/micro-server-grpc/v3
 
-go 1.22.0
+go 1.22.2
 
+toolchain go1.24.2
 
 require (
 	go.unistack.org/micro/v3 v3.11.30
