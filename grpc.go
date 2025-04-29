@@ -263,6 +263,7 @@ func (g *Server) handler(srv interface{}, stream grpc.ServerStream) error {
 	// create new context
 	ctx = metadata.NewIncomingContext(ctx, md)
 	ctx = metadata.NewOutgoingContext(ctx, metadata.New(0))
+	ctx = context.WithValue(ctx, rspMetadataKey{}, &rspMetadataVal{})
 
 	stream = &streamWrapper{ctx, stream}
 
@@ -397,8 +398,8 @@ func (g *Server) processRequest(ctx context.Context, stream grpc.ServerStream, s
 	statusDesc := ""
 	// execute the handler
 	appErr := fn(ctx, r, replyv.Interface())
-	if outmd, ok := metadata.FromOutgoingContext(ctx); ok {
-		if err = stream.SendHeader(gmetadata.MD(outmd.Copy())); err != nil {
+	if md := getResponseMetadata(ctx); len(md) > 0 {
+		if err = stream.SendHeader(gmetadata.MD(md)); err != nil {
 			return err
 		}
 	}
@@ -481,8 +482,8 @@ func (g *Server) processStream(ctx context.Context, stream grpc.ServerStream, se
 	statusDesc := ""
 
 	appErr := fn(ctx, r, ss)
-	if outmd, ok := metadata.FromOutgoingContext(ctx); ok {
-		if err := stream.SendHeader(gmetadata.MD(outmd.Copy())); err != nil {
+	if md := getResponseMetadata(ctx); len(md) > 0 {
+		if err := stream.SendHeader(gmetadata.MD(md)); err != nil {
 			return err
 		}
 	}
