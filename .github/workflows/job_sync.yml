@@ -23,6 +23,7 @@ jobs:
         git clone --filter=blob:none --filter=tree:0 --branch master --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} repo
         cd repo
         git remote add --no-tags --fetch --track master upstream https://github.com/${GITHUB_REPOSITORY}
+        git diff --stat master upstream/master
         git merge --no-edit --ff-only -v upstream/master
         git push upstream master -v --progress
         git push origin master -v --progress
@@ -34,6 +35,7 @@ jobs:
         git clone --filter=blob:none --filter=tree:0 --branch v3 --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} repo
         cd repo
         git remote add --no-tags --fetch --track v3 upstream https://github.com/${GITHUB_REPOSITORY}
+        git diff --stat v3 upstream/v3
         git merge --no-edit --ff-only -v upstream/v3
         git push upstream v3 -v --progress
         git push origin v3 -v --progress
@@ -45,6 +47,7 @@ jobs:
         git clone --filter=blob:none --filter=tree:0 --branch v4 --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} repo
         cd repo
         git remote add --no-tags --fetch --track v4 upstream https://github.com/${GITHUB_REPOSITORY}
+        git diff --stat v4 upstream/v4
         git merge --no-edit --ff-only -v upstream/v4
         git push upstream v4 -v --progress
         git push origin v4 -v --progress
