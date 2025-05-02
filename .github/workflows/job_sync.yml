@@ -8,7 +8,7 @@ on:
 
 jobs:
   sync:
-    if: github.server_url == 'zhttps://github.com'
+    if: github.server_url != 'https://github.com'
     runs-on: ubuntu-latest
     steps:
     - name: init
@@ -24,7 +24,7 @@ jobs:
         cd repo
         git remote add --no-tags --fetch --track master upstream https://github.com/${GITHUB_REPOSITORY}
         git diff --stat master upstream/master
-        git merge --no-edit --ff-only -v upstream/master
+        git pull -v --rebase upstream master
         git push upstream master -v --progress
         git push origin master -v --progress
         cd ../
@@ -36,7 +36,7 @@ jobs:
         cd repo
         git remote add --no-tags --fetch --track v3 upstream https://github.com/${GITHUB_REPOSITORY}
         git diff --stat v3 upstream/v3
-        git merge --no-edit --ff-only -v upstream/v3
+        git pull -v --rebase upstream v3
         git push upstream v3 -v --progress
         git push origin v3 -v --progress
         cd ../
@@ -48,7 +48,7 @@ jobs:
         cd repo
         git remote add --no-tags --fetch --track v4 upstream https://github.com/${GITHUB_REPOSITORY}
         git diff --stat v4 upstream/v4
-        git merge --no-edit --ff-only -v upstream/v4
+        git pull -v --rebase upstream v4
         git push upstream v4 -v --progress
         git push origin v4 -v --progress
         cd ../
