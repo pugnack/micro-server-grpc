@@ -404,7 +404,16 @@ func (g *Server) processRequest(ctx context.Context, stream grpc.ServerStream, s
 		}
 	}
 	if appErr != nil {
+		var err error
 		var errStatus *status.Status
+		var ok bool
+		errStatus, ok = status.FromError(appErr)
+		if ok {
+			return errStatus.Err()
+		}
+		if errStatus = status.FromContextError(appErr); errStatus.Code() != codes.Unknown {
+			return errStatus.Err()
+		}
 		switch verr := appErr.(type) {
 		case *errors.Error:
 			statusCode = microError(verr)
@@ -418,8 +427,6 @@ func (g *Server) processRequest(ctx context.Context, stream grpc.ServerStream, s
 			if err != nil {
 				return err
 			}
-		case (interface{ GRPCStatus() *status.Status }):
-			errStatus = verr.GRPCStatus()
 		default:
 			g.mu.RLock()
 			config := g.opts
@@ -490,6 +497,14 @@ func (g *Server) processStream(ctx context.Context, stream grpc.ServerStream, se
 	if appErr != nil {
 		var err error
 		var errStatus *status.Status
+		var ok bool
+		errStatus, ok = status.FromError(appErr)
+		if ok {
+			return errStatus.Err()
+		}
+		if errStatus = status.FromContextError(appErr); errStatus.Code() != codes.Unknown {
+			return errStatus.Err()
+		}
 		switch verr := appErr.(type) {
 		case *errors.Error:
 			statusCode = microError(verr)
