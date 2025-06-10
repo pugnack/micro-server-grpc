@@ -133,6 +133,7 @@ func (g *Server) createSubHandler(sb *subscriber, opts server.Options) broker.Ha
 		}
 
 		ctx := metadata.NewIncomingContext(sb.opts.Context, hdr)
+		ctx = metadata.NewOutgoingContext(ctx, metadata.New(0))
 
 		results := make(chan error, len(sb.handlers))
 
